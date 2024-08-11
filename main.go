@@ -3,7 +3,7 @@ package main
 import (
 	"os"
 	"os/exec"
-	_ "fmt"
+	"fmt"
 	"log"
 	"strconv"
 	"strings"
@@ -26,7 +26,9 @@ func main() {
 
 	outStr := string(out[:])
 	outSplit := strings.Split(outStr, ".")
-	s, err := strconv.Atoi(outSplit[0])
+	s, _ := strconv.Atoi(outSplit[0])
+
+	fmt.Println("Video duration is " + getTime(s))
 
 	counter := 1 // will be used for naming the output video file
 	outputVideo := "" // output video file name
@@ -38,6 +40,7 @@ func main() {
 		startTime = getTime(i)
 		endTime = getTime(i + defDuration)
 
+		fmt.Println("Processing " + outputVideo)
 		exec.Command("ffmpeg", "-ss", startTime, "-to", endTime, "-i", inputVideoArg, outputVideo).Output()
 
 		counter++
