@@ -7,13 +7,24 @@ import (
 	"log"
 	"strconv"
 	"strings"
+	"flag"
 )
 
 func main() {
 	// constant
 	const defDuration = 60
 
-	inputVideoArg := os.Args[1] // argument: video filename without path
+	frontCutoffFlag := flag.String("min", "00:00:00", "cutoff at the beginning of the main video")
+	backCutoffFlag := flag.String("max", "00:00:00", "cutoff at the ending of the main video")
+	flag.Parse()
+
+	//inputVideoArg := os.Args[1] // argument: video filename without path
+	flagTails := flag.Args()
+	inputVideoArg := flagTails[0]
+
+	// validate front and back flag
+	front := standardToSeconds(*frontCutoffFlag)
+	back := standardToSeconds(*backCutoffFlag)
 
 	// verify the filename
 	_, err := os.Open(inputVideoArg)
@@ -26,21 +37,32 @@ func main() {
 
 	outStr := string(out[:])
 	outSplit := strings.Split(outStr, ".")
-	s, _ := strconv.Atoi(outSplit[0])
+	s, _ := strconv.Atoi(outSplit[0]) // duration in seconds
 
-	fmt.Println("Video duration is " + getTime(s))
+	fmt.Println("Original video duration is " + getTime(s))
+
+	if back!=0 && back<s {
+		s = back
+	}
+
+	fmt.Println("Cutoff video duration is " + getTime(s-front))
 
 	counter := 1 // will be used for naming the output video file
 	outputVideo := "" // output video file name
-	startTime, endTime := "", "" // placeholder for starttime and endtime
+	startTime, endTime := "", "" // placeholder for starttime and endtime, to be used within loop
 
-	for i := 0; i < s; i=i + defDuration {
+
+	for i := front; i < s; i=i + defDuration {
 		outputVideo = strconv.Itoa(counter) + ".mp4" // assuming all file is mp4
 
 		startTime = getTime(i)
-		endTime = getTime(i + defDuration)
+		if i + defDuration > s {
+			endTime = getTime(s)
+		} else {
+			endTime = getTime(i + defDuration)
+		}
 
-		fmt.Println("Processing " + outputVideo)
+		fmt.Println("processing " + outputVideo)
 		exec.Command("ffmpeg", "-ss", startTime, "-to", endTime, "-i", inputVideoArg, outputVideo).Output()
 
 		counter++
@@ -116,4 +138,15 @@ func isLessTen(num int) bool {
 	} else {
 		return false
 	}
+}
+
+// function to convert hh:mm:ss to seconds
+func standardToSeconds(standardFormat string) int {
+	splitted := strings.Split(standardFormat, ":")
+
+	h, _ := strconv.Atoi(splitted[0]) //
+	m, _ := strconv.Atoi(splitted[1]) //
+	s, _ := strconv.Atoi(splitted[2]) //
+
+	return (3600 * h) + (60 * m) + s
 }
